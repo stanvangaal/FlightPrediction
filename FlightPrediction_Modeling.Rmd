@@ -1,0 +1,97 @@
+---
+title: "Modeling_FlightPrediction"
+author: "SVG"
+date: "2023-01-04"
+output: html_document
+---
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(fastDummies)
+library(dplyr)
+library(mice)
+library(texreg)
+library(stringr)
+library(texreg)
+library(GGally)
+library(readr)
+```
+
+```{r}
+##Loading data
+Flight_prediction <- read_csv("~//Stan HAN//HAN_Minor//IndividuelProject_SVG//Datasets//Clean_Dataset.csv")
+View(Flight_prediction)
+```
+
+```{r}
+##Creating dummies for airline, source city, departure time, stops, arrival time, destination city and class. 
+Flight_prediction <- dummy_cols(Flight_prediction, 
+                                          select_columns = c("airline", "source_city", 
+                                                             "departure_time", "stops", 
+                                                             "arrival_time", "destination_city", "class")
+                                )
+
+view(Flight_prediction)
+
+##renaming the variables isn't necessary, the variables names are ok.
+
+```
+
+```{r}
+##Checking if there are NA values
+
+which(is.na(Flight_prediction))
+
+##outcome is 0, so there are no missing values in this dataset.
+
+```
+
+
+```{r}
+#Check for outliers with scatterplot
+qqnorm(Flight_prediction$price)
+qqnorm(Flight_prediction$duration)
+```
+```{r} 
+#Check for multicolinearity
+#searching for multicorrelations
+correlations <- cor(Flight_prediction[,c(10:12)])
+correlations <- as.data.frame(correlations)
+
+correlations[correlations >= 0.8 |correlations <= -0.8] #help checking values above 0.8 and below -0.8
+
+##coefficient of 1; so it is a perfect positive correlation or a direct relationship. 
+```
+
+
+
+```{r}
+##I wanna fly from Kokate to Chennai with the airline Indigo. I prefer to fly in the evening with one stop in the  economy class. What is the price of a ticket?
+
+
+##first checking the R-Squared
+model1 <- lm(price ~ airline_Indigo + source_city_Kolkata + departure_time_Evening + stops_one + destination_city_Chennai + class_Economy, data=Flight_prediction)
+summary(model1)
+
+## u have a R-squared of 0.8887 so u can make a good predicition about een price flight. 
+
+price_prediction <- data.frame(airline_Indigo = 1, source_city_Kolkata = 1, departure_time_Evening = 1, stops_one = 1, destination_city_Chennai = 1, class_Economy = 1)
+predict(model1, newdata = price_prediction)
+```
+
+
+```{r}
+model_price <- lm(scale(price)~scale(duration)+scale(days_left)+airline_Air_India+airline_AirAsia+airline_GO_FIRST+airline_Indigo+airline_SpiceJet+airline_Vistara+source_city_Bangalore+source_city_Chennai+source_city_Delhi+source_city_Hyderabad+source_city_Kolkata+source_city_Mumbai+departure_time_Afternoon+departure_time_Early_Morning+departure_time_Evening+departure_time_Late_Night+departure_time_Morning+departure_time_Night+stops_one+stops_two_or_more+stops_zero+arrival_time_Afternoon+arrival_time_Early_Morning+arrival_time_Evening+arrival_time_Late_Night+arrival_time_Morning+destination_city_Bangalore+destination_city_Chennai+destination_city_Hyderabad+destination_city_Kolkata+destination_city_Mumbai+class_Business+class_Economy, data=Flight_prediction)
+summary(model_price)
+
+screenreg(list(model_price),
+          custom.model.names = "Price model",
+          custom.coef.names = c("Intercept", "duration", "days_left", "airline_Air_India", "airline_AirAsia", "airline_GO_FIRST", "airline_Indigo", "airline_SpiceJet", "airline_Vistara", "source_city_Bangalore", "source_city_Chennai", "source_city_Delhi", "source_city_Hyderabad", "source_city_Kolkata", "source_city_Mumbai", "departure_time_Afternoon", "departure_time_Early_Morning", "departure_time_Evening", "departure_time_Late_Night", "departure_time_Morning", "departure_time_Night", "stops_one", "stops_two_or_more", "stops_zero","arrival_time_Afternoon", "arrival_time_Early_Morning", "arrival_time_Evening", "arrival_time_Late_Night", "arrival_time_Morning", "destination_city_Bangalore", "destination_city_Chennai", "destination_city_Hyderabad", "destination_city_Kolkata", "destination_city_Mumbai", "class_Business", "class_Economy"), 
+          digits = 6,
+          custom.gof.names =  c("R-squared","Adjusted R-Squared","Number of Observations")
+)
+
+
+
+```
